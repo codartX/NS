@@ -95,6 +95,10 @@ class NodeFrameData():
 class NodeJoinReq():
     def __init__(self, data):
         try:
+            if len(data) != 18:
+                logging.error('JoinReq length error')
+                raise ValueError
+            
             app_eui = data[0: 8]
             self.__dict__.update({'app_eui': app_eui})
             dev_eui = data[8: 16]
@@ -103,5 +107,31 @@ class NodeJoinReq():
             self.__dict__.update({'dev_nonce': dev_nonce})
         except Exception, e:
             logging.error('JoinReq error:%s' % str(e))
+            raise ValueError
+
+class NodeJoinAccept():
+    def __init__(self, data):
+        try:
+            if len(data) != 12 or len(data) != 28:
+                logging.error('JoinResp length error')
+                raise ValueError
+            
+            app_nonce = data[0: 3]
+            self.__dict__.update({'app_nonce': app_nonce})
+            net_id = data[3: 6]
+            self.__dict__.update({'net_id': net_id})
+            dev_addr = data[6: 10]
+            self.__dict__.update({'dev_addr': dev_addr})
+            dl_settings = data[10]
+            self.__dict__.update({'dl_settings': dl_settings})
+            rx_delay = data[11]
+            self.__dict__.update({'rx_delay': rx_delay})
+            if len(data) == 28:
+                self.__dict__.update({'cf_list': data[12:28]})
+            else:
+                self.__dict__.update({'cf_list': []})
+             
+        except Exception, e:
+            logging.error('JoinResp error:%s' % str(e))
             raise ValueError
 

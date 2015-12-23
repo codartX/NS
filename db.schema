@@ -11,13 +11,13 @@ Postgresql:
  dev_eui                   | character varying(128) | 
  lora_version              | integer                | 
  dev_nonce                 | character varying(128) | 
- authen_key                | character varying(256) | 
- encrypt_key               | character varying(256) | 
  app_key                   | character varying(256) | 
+ app_session_key           | character varying(256) | 
+ network_session_key       | character varying(256) | 
  last_downmsg_seqno        | integer                | 
  last_uppacket_id          | integer                | 
  last_uppacket_id_pos_port | integer                | 
- app_server_id             | character varying(128) | 
+ app_eui                   | character varying(128) | 
  geometry                  | geometry(Point,4326)   | 
  owner_id                  | integer                | not null
 Indexes:

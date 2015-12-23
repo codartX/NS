@@ -6,7 +6,7 @@ LINK=-lpython$(PYVERSION)
 
 all : network_server
 
-network_server: main.o forward.so database.so gw_msg.so lora_msg.so parser.so
+network_server: main.o forward.so database.so gw_msg.so lora_msg.so app_msg.so parser.so
 	$(CC) -o $@ $^ $(INCLUDES) $(LINK)
 
 main.o: main.c
@@ -17,6 +17,9 @@ forward.so: forward.c
 
 database.so: database.c
 	$(CC) $(INCLUDES) $(LINK) -shared -o database.so -fPIC database.c
+
+app_msg.so: app_msg.c
+	$(CC) $(INCLUDES) $(LINK) -shared -o app_msg.so -fPIC app_msg.c
 
 gw_msg.so: gw_msg.c
 	$(CC) $(INCLUDES) $(LINK) -shared -o gw_msg.so -fPIC gw_msg.c
@@ -35,6 +38,9 @@ database.c: database.pyx
 
 main.c: main.pyx
 	cython --embed main.pyx 
+
+app_msg.c: app_msg.pyx
+	cython app_msg.pyx 
 
 gw_msg.c: gw_msg.pyx
 	cython gw_msg.pyx 

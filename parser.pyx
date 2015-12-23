@@ -94,7 +94,7 @@ class MsgParserProcess(Process):
         data.append(msg_type)
         self.sock.sendto(binascii.hexlify(bytearray(data)), from_addr)
 
-    def lora_join_req_process(self, data):
+    def lora_join_req_process(self, data, gw):
         try:
             join_req = NodeJoinReq(data)
             node = self.node_model.get_node_by_eui(join_req.dev_eui)
@@ -109,15 +109,19 @@ class MsgParserProcess(Process):
                 logging.error('Device nonce is same as before, reject')
                 return False
             else:
-                self.node_model.set_node_nonce(dev_addr, join_req.dev_nonce)
+                self.node_model.set_node_nonce(join_req.dev_eui, join_req.dev_nonce)
    
+            if 'gw' in node and node['gw']['rssi'] < gw['rssi'] or not 'gw' in node:
+                self.node_model.set_node_best_gw_by_eui(dev_eui, binascii.hexlify(bytearray(gw['mac'])), 
+                                                        gw['address'], gw['rssi'])
+
             return True
 
         except Exception, e:
             logging.error(e)
             return False
 
-    def lora_frame_process(self, data, need_confirm):
+    def lora_frame_process(self, data, need_confirm, gw):
         try:
             frame_data = NodeFrameData(data)
             dev_addr = binascii.hexlify(bytearray(frame_data.address))
@@ -137,12 +141,9 @@ class MsgParserProcess(Process):
 
             self.node_mode.set_node_pkt_seq(dev_addr, node_data.fcnt)
 
-            try:
-                if 'gw' in node and node['gw']['rssi'] < rxpk['rssi'] or not 'gw' in node:
-                    self.node_model.set_node_best_gw(dev_addr, binascii.hexlify(bytearray(msg.gw_mac)), from_addr, rxpk['rssi'])
-            except Exception, e:
-                logging.error(e)
-                return
+            if 'gw' in node and node['gw']['rssi'] < gw['rssi'] or not 'gw' in node:
+                self.node_model.set_node_best_gw(dev_addr, binascii.hexlify(bytearray(gw['mac'])), 
+                                                 gw['address'], gw['rssi'])
 
             return True
         except Exception, e:
@@ -166,12 +167,14 @@ class MsgParserProcess(Process):
                     logging.error(e)
                     return
 
+                gw = {'mac': msg['gw_mac'], 'address': from_addr, 'rssi': rxpk['rssi']}
+
                 if mac_data.frame_type == MSG_TYPE_JOIN_REQ:
-                    result = self.lora_join_req_process(mac_data.mac_payload)  
+                    result = self.lora_join_req_process(mac_data.mac_payload, gw)  
                 elif mac_data.frame_type == MSG_TYPE_UNCONFIRMED_DATA_UP:
-                    result = self.lora_frame_process(from_addr, mac_data.mac_payload, False) 
+                    result = self.lora_frame_process(from_addr, mac_data.mac_payload, False, gw) 
                 elif mac_data.frame_type == MSG_TYPE_CONFIRMED_DATA_UP:
-                    result = self.lora_frame_process(from_addr, mac_data.mac_payload, True) 
+                    result = self.lora_frame_process(from_addr, mac_data.mac_payload, True, gw) 
                 else:
                     result = False
 

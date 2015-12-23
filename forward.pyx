@@ -12,6 +12,8 @@ from database import NodeModel, GatewayModel
 import psycopg2
 import memcache
 import json
+from app_msg import *
+from lora_msg import *
 
 class ForwardProcess(Process):
     def __init__(self, kafka_addr, kafka_port, db_host, db_port, db_user, db_pwd, ns_id, memcached_list):
@@ -35,8 +37,33 @@ class ForwardProcess(Process):
         while True:
             try:
                 for message in self.kafka_conn:
-                    print message
-                    #TODO need define downlink packet format
+                    try:
+                        msg = AppMessage(message) 
+                        mac_data = NodeMacData(msg.data)
+                        if mac_data.frame_type == MSG_TYPE_JOIN_ACCEPT:
+                            join_accept = NodeJoinAccept(mac_data.mac_payload)
+                            #update device info
+                            self.node_model.set_node_nws_key_and_dev_addr(msg['dev_eui'], msg['nws_key'], 
+                                                                          join_accept.dev_addr)
+                            gw = self.node_model.get_node_best_gw_by_eui(msg['dev_eui'])
+                            del msg['nws_key']
+                            del msg['dev_dui']
+                        else:
+                            frame_data = NodeFrameData(mac_data.mac_payload) 
+                            dev_addr = frame_data.address
+                            gw = self.node_model.get_node_best_gw(dev_addr)
+
+                        #send to best gw
+                        if gw:
+                            self.sock.sendto(message, gw['address']) 
+                        else:
+                            logging.error('Get best gw fail')
+                            return
+
+                    except Exception, e:
+                        logging.error('App message parse fail:%s' % str(e))
+                        return
+                        
             except Exception, e:
                 logging.error('Error in forward msg to gateway: %s' % str(e))
                 pass
