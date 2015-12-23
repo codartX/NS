@@ -1,5 +1,8 @@
 #!/usr/bin/env python
 # coding=utf-8
+#
+#  Created by Jun Fang on 15-12-23.
+#  Copyright (c) 2015年 Jun Fang. All rights reserved.
 
 import logging
 import json
@@ -26,13 +29,13 @@ class NodeMacData():
 
             self.__dict__.update({'len': len(data) - 4})#exclude mic
 
-            frame_type = header[0] & 0xe0 >> 5
+            frame_type = data[0] & 0xe0 >> 5
             self.__dict__.update({'frame_type': frame_type})
 
-            rfu = header[0] & 0x1C >> 2
+            rfu = data[0] & 0x1C >> 2
             self.__dict__.update({'rfu': rfu})
 
-            major = header[0] & 0x03
+            major = data[0] & 0x03
             self.__dict__.update({'major': major})
 
             mac_payload = data[1: -4]
@@ -74,15 +77,15 @@ class NodeFrameData():
             self.__dict__.update({'opts_len': opts_len})
 
             if opts_len > 0:
-                option = data[7: 7 + option_len - 1]
+                option = data[7: 7 + opts_len - 1]
                 self.__dict__.update({'option': option})
             else:
                 self.__dict__.update({'option': []})
 
-            port = data[7 + option_len]
+            port = data[7 + opts_len]
             self.__dict__.update({'port': port})
 
-            payload = data[7 + option_len:]
+            payload = data[7 + opts_len:]
             self.__dict__.update({'payload': payload})
 
         except Exception, e:

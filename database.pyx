@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 # coding=utf-8
 #
-#  Created by Jun Fang on 14-8-24.
-#  Copyright (c) 2014年 Jun Fang. All rights reserved.
+#  Created by Jun Fang on 15-12-23.
+#  Copyright (c) 2015年 Jun Fang. All rights reserved.
 import psycopg2.extras
 import json
 

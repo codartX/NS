@@ -1,3 +1,7 @@
+#
+#  Created by Jun Fang on 15-12-23.
+#  Copyright (c) 2015年 Jun Fang. All rights reserved.
+
 cdef enum _lora_msg_type_e:
     JOIN_REQ,
     JOIN_ACCEPT,
