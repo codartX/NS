@@ -1,0 +1,16 @@
+cdef enum _gw_msg_type_e:
+    PUSH_DATA,
+    PUSH_ACK,
+    PULL_DATA,
+    PULL_RESP,
+    PULL_ACK
+
+ctypedef enum _gw_msg_type_e gw_msg_type_e
+
+cdef struct _gw_msg_header_t:
+    cdef uint8_t version
+    cdef uint8_t token[2]
+    cdef uint8_t msg_type
+    cdef uint8_t gw_mac[8]
+
+ctypedef struct _gw_msg_header_t gw_msg_header_t

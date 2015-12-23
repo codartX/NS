@@ -1,0 +1,60 @@
+cdef enum _lora_msg_type_e:
+    JOIN_REQ,
+    JOIN_ACCEPT,
+    UNCOMFIRMED_DATA_UP,
+    UNCOMFIRMED_DATA_DOWN,
+    COMFIRMED_DATA_UP,
+    COMFIRMED_DATA_DOWN,
+    RFU,
+    PROPRIETARY
+
+ctypedef enum _lora_msg_type_e lora_msg_type_e
+
+cdef enum _major_ver_e:
+    LORAWAN_R1,
+    RFU_01,
+    RFU_10,
+    RFU_11
+
+ctypedef enum _major_ver_e major_ver_e
+
+cdef struct _lora_mac_header_t:
+    cdef uint8_t msg_type:3
+    cdef uint8_t rfu:3
+    cdef uint8_t major:2
+
+ctypedef struct _lora_mac_header_t lora_mac_header_t
+
+cdef struct _lora_join_req_msg_t:
+    cdef uint8_t app_eui[8] 
+    cdef uint8_t dev_eui[8] 
+    cdef uint8_t dev_nonce[2] 
+
+ctypedef struct _lora_join_req_msg_t lora_join_req_msg_t
+
+cdef struct _lora_frame_header_t:
+    cdef uint8_t dev_addr[4]
+    cdef uint8_t fctrl
+    cdef uint8_t fcnt[2]
+    cdef uint8_t fopts[0]
+
+ctypedef struct _lora_frame_header_t lora_frame_header_t
+
+cdef struct _downlink_fctrl_t:
+    cdef uint8_t adr:1
+    cdef uint8_t adr_ack_req:1
+    cdef uint8_t ack:1
+    cdef uint8_t fpending:1
+    cdef uint8_t fopts_len:4
+
+ctypedef struct _downlink_fctrl_t downlink_fctrl_t
+
+cdef struct _uplink_fctrl_t:
+    cdef uint8_t adr:1
+    cdef uint8_t adr_ack_req:1
+    cdef uint8_t ack:1
+    cdef uint8_t rfu:1
+    cdef uint8_t fopts_len:4
+
+ctypedef struct _uplink_fctrl_t uplink_fctrl_t
+

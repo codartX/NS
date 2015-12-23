@@ -1,0 +1,67 @@
+Postgresql:
+
+1) at_lora_nodes:
+
+          Column           |          Type          |                         Modifiers                          
+---------------------------+------------------------+------------------------------------------------------------
+ id                        | integer                | not null default nextval('at_lora_nodes_id_seq'::regclass)
+ name                      | character varying(128) | 
+ model                     | character varying(128) | 
+ dev_addr                  | character varying(128) | 
+ dev_eui                   | character varying(128) | 
+ lora_version              | integer                | 
+ dev_nonce                 | character varying(128) | 
+ authen_key                | character varying(256) | 
+ encrypt_key               | character varying(256) | 
+ app_key                   | character varying(256) | 
+ last_downmsg_seqno        | integer                | 
+ last_uppacket_id          | integer                | 
+ last_uppacket_id_pos_port | integer                | 
+ app_server_id             | character varying(128) | 
+ geometry                  | geometry(Point,4326)   | 
+ owner_id                  | integer                | not null
+Indexes:
+    "at_lora_nodes_pkey" PRIMARY KEY, btree (id)
+    "at_lora_nodes_dev_addr_key" UNIQUE CONSTRAINT, btree (dev_addr)
+    "at_lora_nodes_dev_eui_key" UNIQUE CONSTRAINT, btree (dev_eui)
+    "at_lora_nodes_name_key" UNIQUE CONSTRAINT, btree (name)
+    "at_lora_nodes_5e7b1936" btree (owner_id)
+    "at_lora_nodes_dev_addr_5a1cfc8278423e1f_like" btree (dev_addr varchar_pattern_ops)
+    "at_lora_nodes_dev_eui_27986950b2fd14f6_like" btree (dev_eui varchar_pattern_ops)
+    "at_lora_nodes_geometry_id" gist (geometry)
+    "at_lora_nodes_name_1277000e061a4a3d_like" btree (name varchar_pattern_ops)
+    "at_lora_nodes_name_7333af5402d03c3d_idx" btree (name, model, dev_addr, dev_eui)
+Foreign-key constraints:
+    "at_lora_nodes_owner_id_1b52f381e2f82355_fk_auth_user_id" FOREIGN KEY (owner_id) REFERENCES auth_user(id) DEFERRABLE INITIALLY DEFERRED
+
+2) gateway:
+  address:                   string
+  loraversion:               Integer
+  timestamp:                 time
+  latitude:                  float
+  longitude:                 float 
+  altitude:                  float
+  uppacketsreceived:         Integer
+  gooduppacketsreceived:     Integer
+  uppacketsforwarded:        Integer
+  uppacketsacknowedgedratio: float
+  downpacketsreceived:       Integer
+  packetstransmitted:        Integer  
+  lastuppacketid:            Integer  
+
+
+Cassandra:
+
+"tmst":3512348611,
+"chan":2,
+"rfch":0,
+"freq":866.349812,
+"stat":1,
+"modu":"LORA",
+"datr":"SF7BW125",
+"codr":"4/6",
+"rssi":-35,
+"lsnr":5.1,
+"size":32, 
+"nsid":"macaddress",
+"data":"-DS4CGaDCdG+48eJNM3Vai-zDpsR71Pn9CPA9uCON84"
