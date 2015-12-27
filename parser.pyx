@@ -19,7 +19,9 @@ from Crypto.Hash import CMAC
 from database import NodeModel, GatewayModel
 from gw_msg import *
 from lora_msg import *
+from utils import *
 import time
+import socket
 
 default_key = [0x2B, 0x7E, 0x15, 0x16, 0x28, 0xAE, 0xD2, 0xA6, 0xAB, 0xF7, 0x15, 0x88, 0x09, 0xCF, 0x4F, 0x3C]
 
@@ -31,8 +33,8 @@ class MsgParserProcess(Process):
         self.queue = Queue()
         self.sock = sock
         try:
-            self.client = KafkaClient(str(kafka_addr) + ':' + str(kafka_port))
-            self.kafka_conn = SimpleProducer(self.client)
+            #self.client = KafkaClient(str(kafka_addr) + ':' + str(kafka_port))
+            #self.kafka_conn = SimpleProducer(self.client)
 
             self.conn = psycopg2.connect(database='lora', user=db_user, password=db_pwd, host=db_host, port=db_port)
             self.db = self.conn.cursor(cursor_factory = psycopg2.extras.RealDictCursor)
@@ -42,15 +44,15 @@ class MsgParserProcess(Process):
             self.node_model = NodeModel(self.db, self.mc)
             self.gateway_model = GatewayModel(self.db, self.mc)
         except Exception, e:
-            logging.error(e)
+            logging.error('Parser process init fail:%s' % str(e))
             raise ValueError
 
         self.process_func = {
-            GW_PUSH_DATA: self.push_data_process,
-            GW_PUSH_ACK:  self.push_ack_process,
-            GW_PULL_DATA: self.pull_data_process,
-            GW_PULL_RESP: self.pull_resp_process,
-            GW_PULL_ACK:  self.pull_ack_process,
+            GW_PUSH_DATA: self.gw_push_data_process,
+            GW_PUSH_ACK:  self.gw_push_ack_process,
+            GW_PULL_DATA: self.gw_pull_data_process,
+            GW_PULL_RESP: self.gw_pull_resp_process,
+            GW_PULL_ACK:  self.gw_pull_ack_process,
         }
 
         #for debug
@@ -94,61 +96,74 @@ class MsgParserProcess(Process):
         data.append(msg_type)
         self.sock.sendto(binascii.hexlify(bytearray(data)), from_addr)
 
-    def lora_join_req_process(self, data, gw):
+    def lora_join_req_process(self, mac_header, data, gw):
         try:
             join_req = NodeJoinReq(data)
-            node = self.node_model.get_node_by_eui(join_req.dev_eui)
+            dev_eui = binascii.hexlify(bytearray(join_req.dev_eui))
+            app_eui = binascii.hexlify(bytearray(join_req.app_eui))
+            dev_nonce = binascii.hexlify(bytearray(join_req.dev_nonce))
+            node = self.node_model.get_node_by_eui(dev_eui)
             if node == None:
-                return False
+                return
             #check app eui
-            if node['app_eui'] != join_req.app_eui:
+            if node['app_server_id'] != app_eui:
                 logging.error('App EUI mismatch')
-                return False
+                return
 
-            if node['dev_nonce'] == join_req.dev_nonce:
+            if node['dev_nonce'] == dev_nonce:
                 logging.error('Device nonce is same as before, reject')
-                return False
+                return
             else:
-                self.node_model.set_node_nonce(join_req.dev_eui, join_req.dev_nonce)
+                self.node_model.set_node_nonce(dev_eui, dev_nonce)
    
             if 'gw' in node and node['gw']['rssi'] < gw['rssi'] or not 'gw' in node:
                 self.node_model.set_node_best_gw_by_eui(dev_eui, binascii.hexlify(bytearray(gw['mac'])), 
                                                         gw['address'], gw['rssi'])
 
-            return True
+            return
 
         except Exception, e:
-            logging.error(e)
-            return False
+            logging.error('Lora join process fail:%s' % str(e))
+            return
 
-    def lora_frame_process(self, data, need_confirm, gw):
+    def lora_frame_process(self, mac_header, data, need_confirm, gw):
         try:
             frame_data = NodeFrameData(data)
             dev_addr = binascii.hexlify(bytearray(frame_data.address))
             node = self.node_model.get_node_by_addr(dev_addr)
             if not node:
                 logging.error('Node do not exist')
-                return False
+                return
 
-            mic = self.generate_frame_mic(data, len(data), frame_data.address, True, frame_data.fcnt)
+            mac_data = mac_header + data[:-4]
+            mic = self.generate_frame_mic(mac_data, len(data) - 4 + 1, frame_data.address, True, frame_data.fcnt)
             if mic != binascii.hexlify(bytearray(frame_data.mic)):
                 logging.error('MIC mismatch')
-                return False
-
-            if frame_data.fcnt == node['seq']:
-                logging.error('Seq number is same as before')
-                return False
-
-            self.node_mode.set_node_pkt_seq(dev_addr, node_data.fcnt)
+                return
 
             if 'gw' in node and node['gw']['rssi'] < gw['rssi'] or not 'gw' in node:
                 self.node_model.set_node_best_gw(dev_addr, binascii.hexlify(bytearray(gw['mac'])), 
                                                  gw['address'], gw['rssi'])
 
+            if 'seq' in node and frame_data.fcnt == node['seq']:
+                logging.error('Seq number is same as before')
+                return
+
+            self.node_model.set_node_pkt_seq(dev_addr, frame_data.fcnt)
+
+            app_eui = self.node_model.get_node_app_eui(dev_addr)
+            if app_eui:
+                print 'app eui:', app_eui
+                #self.kafka_conn.send_messages(app_eui, {'rxpk':[rxpk]})
+            else:
+                logging.error('App EUI does not exist')
+                return
+
             return True
         except Exception, e:
-            logging.error(e)
-            return False
+            PrintException()
+            logging.error('Lora frame process fail:%s' % str(e))
+            return
 
     def gw_push_data_process(self, from_addr, msg):
         try:
@@ -167,24 +182,14 @@ class MsgParserProcess(Process):
                     logging.error(e)
                     return
 
-                gw = {'mac': msg['gw_mac'], 'address': from_addr, 'rssi': rxpk['rssi']}
+                gw = {'mac': msg.gw_mac, 'address': from_addr, 'rssi': rxpk['rssi']}
 
                 if mac_data.frame_type == MSG_TYPE_JOIN_REQ:
-                    result = self.lora_join_req_process(mac_data.mac_payload, gw)  
+                    self.lora_join_req_process(mac_data.mac_header, mac_data.mac_payload, gw)  
                 elif mac_data.frame_type == MSG_TYPE_UNCONFIRMED_DATA_UP:
-                    result = self.lora_frame_process(from_addr, mac_data.mac_payload, False, gw) 
+                    self.lora_frame_process(mac_data.mac_header, mac_data.mac_payload, False, gw) 
                 elif mac_data.frame_type == MSG_TYPE_CONFIRMED_DATA_UP:
-                    result = self.lora_frame_process(from_addr, mac_data.mac_payload, True, gw) 
-                else:
-                    result = False
-
-                if result:
-                    app_eui = self.node_model.get_node_app_eui(dev_addr)
-                    if app_eui:
-                        self.kafka_conn.send_messages(app_eui, {'rxpk':[rxpk]})
-                    else:
-                        logging.error('App EUI does not exist')
-                        return
+                    self.lora_frame_process(mac_data.mac_header, mac_data.mac_payload, True, gw) 
 
         elif 'stat' in gw_data.__dict__:
             return
@@ -194,7 +199,7 @@ class MsgParserProcess(Process):
             return
 
         #don't forget ack
-        self.gw_send_ack(from_addr, msg, PUSH_ACK)
+        self.gw_send_ack(from_addr, msg, GW_PUSH_ACK)
 
         return
 

@@ -25,27 +25,27 @@ class NodeMacData():
         try:
             data = binascii.b2a_hex(binascii.a2b_base64(raw_data))
             data = map(ord, data.decode('hex'))
-            self.__dict__.update({'data': data[:-4]})# exclude mic
+            self.__dict__.update({'data': data})
 
-            self.__dict__.update({'len': len(data) - 4})#exclude mic
+            self.__dict__.update({'len': len(data)})
 
-            frame_type = data[0] & 0xe0 >> 5
+            frame_type = (data[0] & 0xe0) >> 5
             self.__dict__.update({'frame_type': frame_type})
 
-            rfu = data[0] & 0x1C >> 2
+            rfu = (data[0] & 0x1C) >> 2
             self.__dict__.update({'rfu': rfu})
 
             major = data[0] & 0x03
             self.__dict__.update({'major': major})
 
-            mac_payload = data[1: -4]
+            mac_header = data[:1]
+            self.__dict__.update({'mac_header': mac_header})
+
+            mac_payload = data[1:]
             self.__dict__.update({'mac_payload': mac_payload})
 
-            mic = data[-4:]
-            self.__dict__.update({'mic': mic})
-
         except Exception, e:
-            logging.error(e)
+            logging.error('Node mac data parse fail:' % str(e))
             raise ValueError
 
 class NodeFrameData():
@@ -61,7 +61,7 @@ class NodeFrameData():
             fctrl = header[4]
             self.__dict__.update({'fctrl': fctrl})
 
-            fcnt = header[6] << 8 + header[5]
+            fcnt = (header[6] << 8) + header[5]
             self.__dict__.update({'fcnt': fcnt})
 
             adr = fctrl & 0x80
@@ -85,8 +85,11 @@ class NodeFrameData():
             port = data[7 + opts_len]
             self.__dict__.update({'port': port})
 
-            payload = data[7 + opts_len:]
+            payload = data[7 + opts_len: -4]
             self.__dict__.update({'payload': payload})
+
+            mic = data[-4:]
+            self.__dict__.update({'mic': mic})
 
         except Exception, e:
             logging.error('FrameData error:%s' % str(e))
@@ -95,7 +98,7 @@ class NodeFrameData():
 class NodeJoinReq():
     def __init__(self, data):
         try:
-            if len(data) != 18:
+            if len(data) != 22:
                 logging.error('JoinReq length error')
                 raise ValueError
             
@@ -105,6 +108,8 @@ class NodeJoinReq():
             self.__dict__.update({'dev_eui': dev_eui})
             dev_nonce = data[16: 18]
             self.__dict__.update({'dev_nonce': dev_nonce})
+            mic = data[18: 22]
+            self.__dict__.update({'mic': mic})
         except Exception, e:
             logging.error('JoinReq error:%s' % str(e))
             raise ValueError

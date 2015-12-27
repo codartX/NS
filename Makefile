@@ -6,7 +6,7 @@ LINK=-lpython$(PYVERSION)
 
 all : network_server
 
-network_server: main.o forward.so database.so gw_msg.so lora_msg.so app_msg.so parser.so
+network_server: main.o forward.so database.so gw_msg.so lora_msg.so app_msg.so parser.so utils.so
 	$(CC) -o $@ $^ $(INCLUDES) $(LINK)
 
 main.o: main.c
@@ -30,6 +30,9 @@ lora_msg.so: lora_msg.c
 parser.so: parser.c
 	$(CC) $(INCLUDES) $(LINK) -shared -o parser.so -fPIC parser.c
 
+utils.so: utils.c
+	$(CC) $(INCLUDES) $(LINK) -shared -o utils.so -fPIC utils.c
+
 forward.c: forward.pyx
 	cython forward.pyx
 
@@ -50,6 +53,9 @@ lora_msg.c: lora_msg.pyx
 
 parser.c: parser.pyx
 	cython parser.pyx 
+
+utils.c: utils.pyx
+	cython utils.pyx 
 
 clean: 
 	rm -rf *.c *.o *.so *.pyc network_server 2> /dev/null 

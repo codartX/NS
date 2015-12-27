@@ -21,7 +21,7 @@ class NodeModel():
         if node:
            return json.loads(node)
         else:
-           sql = """SELECT * FROM 'at_lora_nodes' WHERE dev_addr = '%s';""" % node_addr
+           sql = """SELECT * FROM at_lora_nodes WHERE dev_addr = '%s';""" % node_addr
            self.db.execute(sql)
            node = self.db.fetchone()
            if node is not None:
@@ -35,7 +35,7 @@ class NodeModel():
         if node:
            return json.loads(node)
         else:
-           sql = """SELECT * FROM 'at_lora_nodes' WHERE dev_eui = '%s';""" % node_eui
+           sql = """SELECT * FROM at_lora_nodes WHERE dev_eui = '%s';""" % node_eui
            self.db.execute(sql)
            node = self.db.fetchone()
            if node is not None:
@@ -46,8 +46,8 @@ class NodeModel():
 
     def get_node_app_eui(self, node_addr):
         node = self.get_node_by_addr(node_addr)
-        if 'app_eui' in node:
-            return node['app_eui']
+        if 'app_server_id' in node:
+            return node['app_server_id']
         else:
             return None
 
@@ -85,7 +85,7 @@ class NodeModel():
     def set_node_nonce(self, node_eui, nonce):
         node = self.get_node_by_eui(node_eui)
         node['dev_nonce'] = nonce
-        sql = """UPDATE 'at_lora_nodes' SET dev_nonce = '%s' WHERE dev_eui = '%s';""" % (nonce, node_eui)
+        sql = """UPDATE at_lora_nodes SET dev_nonce = '%s' WHERE dev_eui = '%s';""" % (nonce, node_eui)
         self.db.execute(sql)
         self.mc.set(node_eui, json.dumps(node))
 
@@ -98,6 +98,6 @@ class NodeModel():
         node = self.get_node_by_eui(node_eui)
         node['nws_key'] = nws_key
         node['dev_addr'] = dev_addr
-        sql = """UPDATE 'at_lora_nodes' SET network_session_ley = '%s', dev_addr = '%s' WHERE dev_eui = '%s';""" % (nws_key, dev_addr, node_eui)
+        sql = """UPDATE at_lora_nodes SET network_session_ley = '%s', dev_addr = '%s' WHERE dev_eui = '%s';""" % (nws_key, dev_addr, node_eui)
         self.db.execute(sql)
         self.mc.set(node_eui, json.dumps(node)) 

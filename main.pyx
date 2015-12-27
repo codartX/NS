@@ -50,13 +50,13 @@ def main():
             process_pool.append(p)
             p.start()
 
-        p = ForwardProcess(config_json['kafka_cfg']['host'], config_json['kafka_cfg']['port'], config_json['database_cfg']['host'],
-                           config_json['database_cfg']['port'], config_json['database_cfg']['username'], config_json['database_cfg']['password'],
-                           config_json['kafka_cfg']['ns_id'], config_json['mc_list'])
-        p.daemon = True
-        p.start()
+        #p = ForwardProcess(config_json['kafka_cfg']['host'], config_json['kafka_cfg']['port'], config_json['database_cfg']['host'],
+        #                   config_json['database_cfg']['port'], config_json['database_cfg']['username'], config_json['database_cfg']['password'],
+        #                   config_json['kafka_cfg']['ns_id'], config_json['mc_list'])
+        #p.daemon = True
+        #p.start()
     except Exception, e:
-        print 'Process create fail,', e
+        print 'Process create fail', e
         sys.exit()
 
     # Report on all data packets received and
